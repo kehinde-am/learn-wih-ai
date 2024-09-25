@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/app/redux/store";
 import { clearFeedback } from "@/app/redux/courseSlice";
 import axios from "axios";
 import { dummyCourses } from "@/app/coursesData";
+import { getAuth } from "firebase/auth"; // Import Firebase auth
 
 const MessagesContent: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
@@ -13,6 +14,16 @@ const MessagesContent: React.FC = () => {
   >([]);
   const [userMessage, setUserMessage] = useState<string>("");
   const [selectedCourse, setSelectedCourse] = useState<string>("1");
+  const [userId, setUserId] = useState<string | null>(null); // Store userId
+
+  // Fetch userId when the component mounts
+  useEffect(() => {
+    const auth = getAuth();
+    const user = auth.currentUser;
+    if (user) {
+      setUserId(user.uid); // Set the user's Firebase ID
+    }
+  }, []);
 
   // Function to handle course selection
   const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -22,6 +33,10 @@ const MessagesContent: React.FC = () => {
   // Function to send message to AI
   const handleSendMessage = async () => {
     if (!userMessage.trim()) return;
+    if (!userId) {
+      console.error("User ID is missing");
+      return;
+    }
 
     const newChatHistory = [
       ...chatHistory,
@@ -31,6 +46,7 @@ const MessagesContent: React.FC = () => {
 
     try {
       const response = await axios.post("/api/evaluate", {
+        userId, // Pass the userId here
         question: userMessage,
         feedbackRequest: true,
         chatHistory: newChatHistory,
@@ -60,7 +76,9 @@ const MessagesContent: React.FC = () => {
 
       {/* Course Selector */}
       <div className="mb-4">
-        <label htmlFor="courseSelector" className="mr-2 font-bold">Select a Course:</label>
+        <label htmlFor="courseSelector" className="mr-2 font-bold">
+          Select a Course:
+        </label>
         <select
           id="courseSelector"
           value={selectedCourse}
