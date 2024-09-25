@@ -1,52 +1,78 @@
-
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/app/redux/store";
 import { clearFeedback } from "@/app/redux/courseSlice";
 import axios from "axios";
+import { dummyCourses } from "@/app/coursesData";
 
 const MessagesContent: React.FC = () => {
   const dispatch: AppDispatch = useDispatch();
-  const feedback = useSelector((state: RootState) => state.course.feedback); // Access feedback from Redux
+  const feedback = useSelector((state: RootState) => state.course.feedback);
   const [chatHistory, setChatHistory] = useState<
     { role: string; content: string }[]
-  >([]); // Chat history
-  const [userMessage, setUserMessage] = useState<string>(""); // User input
+  >([]);
+  const [userMessage, setUserMessage] = useState<string>("");
+  const [selectedCourse, setSelectedCourse] = useState<string>("1");
+
+  // Function to handle course selection
+  const handleCourseChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedCourse(e.target.value);
+  };
 
   // Function to send message to AI
   const handleSendMessage = async () => {
-    if (!userMessage.trim()) return; // Do nothing if the input is empty
+    if (!userMessage.trim()) return;
 
     const newChatHistory = [
       ...chatHistory,
       { role: "user", content: userMessage },
     ];
-    setChatHistory(newChatHistory); // Update chat history with user's message
+    setChatHistory(newChatHistory);
 
     try {
       const response = await axios.post("/api/evaluate", {
         question: userMessage,
-        feedbackRequest: false, // This is a chat interaction
-        chatHistory: newChatHistory, // Send the current chat history
-        courseId: "your-course-id", // Modify to your course ID logic
+        feedbackRequest: true,
+        chatHistory: newChatHistory,
+        courseId: selectedCourse,
       });
 
       const aiResponse = response.data.explanation || "AI is thinking...";
-      setChatHistory([...newChatHistory, { role: "ai", content: aiResponse }]); // Update chat with AI response
-      setUserMessage(""); // Clear input after sending
+      setChatHistory([...newChatHistory, { role: "ai", content: aiResponse }]);
+      setUserMessage("");
     } catch (error) {
       console.error("Error sending message to AI:", error);
+      setChatHistory([
+        ...newChatHistory,
+        { role: "ai", content: "Error occurred. Please try again." },
+      ]);
     }
   };
 
   const handleClearFeedback = () => {
-    dispatch(clearFeedback()); // Clear feedback when "Clear Feedback" button is clicked
-    setChatHistory([]); // Clear chat history as well
+    dispatch(clearFeedback());
+    setChatHistory([]);
   };
 
   return (
     <div className="p-4">
       <h1 className="text-2xl font-bold mb-4">AI Chat and Feedback</h1>
+
+      {/* Course Selector */}
+      <div className="mb-4">
+        <label htmlFor="courseSelector" className="mr-2 font-bold">Select a Course:</label>
+        <select
+          id="courseSelector"
+          value={selectedCourse}
+          onChange={handleCourseChange}
+        >
+          {dummyCourses.map((course) => (
+            <option key={course.id} value={course.id}>
+              {course.name}
+            </option>
+          ))}
+        </select>
+      </div>
 
       {/* Display Feedback */}
       {feedback ? (

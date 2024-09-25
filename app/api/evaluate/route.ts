@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { dummyCourses } from "@/app/coursesData"; // Ensure this file has correct course data
+import { dummyCourses } from "@/app/coursesData";
+import { db } from "@/app/firebase/firebase-config"; // Import Firestore config
+import { collection, doc, setDoc, getDoc } from "firebase/firestore"; // Import Firestore methods
 
-// Set up the Google Generative AI API key
-const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBF-4k982pqYn7aDjdlfmkn1E9MsJAVXPA";
+const apiKey = process.env.GEMINI_API_KEY || "AIzaSyDZs8k3GizX_3pNv0KDj5lOTH9Q8dhMh1Q";
 
 if (!apiKey) {
   console.error("GEMINI_API_KEY is not defined");
@@ -22,40 +23,59 @@ const generationConfig = {
   responseMimeType: "text/plain",
 };
 
+async function saveChatHistory(userId: string, courseId: string, chatHistory: any) {
+  // Save chat history to Firestore using setDoc
+  await setDoc(doc(db, "chatHistories", userId), {
+    courseId,
+    chatHistory,
+    timestamp: new Date(),
+  });
+}
+
+async function loadChatHistory(userId: string, courseId: string) {
+  // Load chat history from Firestore using getDoc
+  const chatHistoryDoc = await getDoc(doc(db, "chatHistories", userId));
+  if (chatHistoryDoc.exists()) {
+    return chatHistoryDoc.data()?.chatHistory || [];
+  }
+  return [];
+}
+
 export async function POST(req: Request) {
   try {
     console.log("POST request received at /api/evaluate");
+    
 
-    // Try to parse the request body
-    let body;
-    try {
-      body = await req.json();
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error("Invalid JSON format in request body:", error.message);
-      } else {
-        console.error("Invalid JSON format in request body:", error);
-      }
-      return NextResponse.json(
-        { error: "Invalid JSON format" },
-        { status: 400 }
-      );
-    }
+    // Parse the request body
+    const body = await req.json();
+    console.log("Received request body:", body); 
+    const {
+      userId,
+      question,
+      answer,
+      courseId,
+      chatHistory = [],
+      feedbackRequest = false,
+    } = body;
 
-    const { question, answer, courseId, chatHistory = [], feedbackRequest = false } = body;
+    // Log the incoming data for debugging
+    console.log("Received data from client:", { question, answer, courseId });
+    console.log("Parsed request details: ", { userId, question, answer, courseId, feedbackRequest });
 
     // Validate the incoming data
-    if (!question || !courseId) {
-      console.error("Missing required fields:", { question, courseId });
+    if (!userId || !question || !courseId) {
+      console.error("Missing required fields:", { userId, question, courseId });
       return NextResponse.json(
-        { error: "Missing required fields: question or courseId" },
+        { error: "Missing required fields: userId, question, or courseId" },
         { status: 400 }
       );
     }
 
     // Handle course completion feedback request
     if (feedbackRequest) {
-      const feedbackPrompt = `Provide a performance summary for a user who completed the course "${courseId}". Include improvement areas, strengths, and an overall evaluation of their progress.`;
+      const finalFeedback = `Thank you for completing the course! Here is your feedback for course "${courseId}".`;
+      const feedbackPrompt = `Provide a performance summary for a user "${userId}" who completed the course "${courseId}". 
+      Include improvement areas, strengths, and an overall evaluation of their progress on the course.`;
 
       const chatSession = model.startChat({ generationConfig, history: [] });
       const result = await chatSession.sendMessage(feedbackPrompt);
@@ -65,13 +85,27 @@ export async function POST(req: Request) {
       }
 
       const responseText = await result.response.text();
+      console.log("AI final feedback response:", responseText);
+
+      chatHistory.push({
+        role: "ai",
+        content: responseText.trim() || finalFeedback,
+      });
+
+      // Save the chat history after getting feedback
+      await saveChatHistory(userId, courseId, chatHistory);
 
       return NextResponse.json({
         isCorrect: true,
         correctAnswer: "",
-        explanation: responseText.trim() || `Thank you for completing the course!`,
+        explanation: responseText.trim() || finalFeedback,
+        chatHistory,
       });
     }
+
+    // Load previous chat history if available
+    const previousChatHistory = await loadChatHistory(userId, courseId);
+    const updatedChatHistory = [...previousChatHistory, ...chatHistory];
 
     // Regular question-answer evaluation logic
     const course = dummyCourses.find((course) => course.id === courseId);
@@ -93,7 +127,7 @@ export async function POST(req: Request) {
         lesson.quiz?.questions.forEach((quizQuestion) => {
           if (quizQuestion.text === question) {
             correctAnswer = quizQuestion.correctAnswer;
-            explanation = lesson.content; // Use the lesson content as explanation
+            explanation = lesson.content;
             found = true;
           }
         });
@@ -101,28 +135,42 @@ export async function POST(req: Request) {
     });
 
     if (!found) {
-      console.error(`Question "${question}" not found in course "${courseId}".`);
+      console.error(
+        `Question "${question}" not found in course "${courseId}".`
+      );
       return NextResponse.json(
         { error: `Question "${question}" not found in course "${courseId}".` },
         { status: 404 }
       );
     }
 
-    // If the answer is correct
-    if (answer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()) {
+    // If the answer is correct, return the success message
+    if (answer?.trim().toLowerCase() === correctAnswer.trim().toLowerCase()) {
+      chatHistory.push({
+        role: "user",
+        content: question,
+      });
+      chatHistory.push({
+        role: "ai",
+        content: "Your answer is correct!",
+      });
+
+      await saveChatHistory(userId, courseId, chatHistory);
+
       return NextResponse.json({
         isCorrect: true,
         correctAnswer,
         explanation: "Your answer is correct!",
+        chatHistory,
       });
     }
 
-    // Otherwise, send a detailed prompt to the AI explaining the incorrect answer
+    // Send incorrect answer to AI for detailed feedback
     const prompt = `Evaluate the following answer to the question: "${question}". The user's provided answer is: "${answer}", but the correct answer is: "${correctAnswer}". Explain why the answer is wrong and provide insights based on the lesson content: "${explanation}".`;
 
     const chatSession = model.startChat({
       generationConfig,
-      history: chatHistory,
+      history: updatedChatHistory,
     });
     const result = await chatSession.sendMessage(prompt);
 
@@ -132,13 +180,24 @@ export async function POST(req: Request) {
 
     const responseText = await result.response.text();
 
+    chatHistory.push({
+      role: "user",
+      content: question,
+    });
+    chatHistory.push({
+      role: "ai",
+      content: responseText.trim() || explanation.trim(),
+    });
+
+    await saveChatHistory(userId, courseId, chatHistory);
+
     return NextResponse.json({
       isCorrect: false,
       correctAnswer,
       explanation: responseText.trim() || explanation.trim(),
+      chatHistory,
     });
   } catch (error) {
-    // Type-check the error before accessing its properties
     if (error instanceof Error) {
       console.error("Error evaluating answer:", error.message);
       return NextResponse.json(
