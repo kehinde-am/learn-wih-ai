@@ -5,13 +5,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDbySbnQqawF3dxHcrEgVzujvILaq4E9UQ",
-  authDomain: "learnwithai-729e4.firebaseapp.com",
-  projectId: "learnwithai-729e4",
-  storageBucket: "learnwithai-729e4.appspot.com",
-  messagingSenderId: "1011876918537",
-  appId: "1:1011876918537:web:d7f9952fdba5f3e1f48fd8",
-  measurementId: "G-3D7376SVXL",
+  apiKey: "AIzaSyCxteK1U1XMYjTlQYGXLj38VHPZKe5k2u",
+  authDomain: "learnwithai-e356b.firebaseapp.com",
+  projectId: "learnwithai-e356b",
+  storageBucket: "learnwithai-e356b.appspot.com",
+  messagingSenderId: "1087047577734",
+  appId: "1:1087047577734:web:f97891852feb176c3c6107",
+  measurementId: "G-EVRKW5VQKB",
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
