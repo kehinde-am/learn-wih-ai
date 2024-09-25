@@ -13,7 +13,7 @@ import Link from "next/link";
 import React, { ChangeEvent, FormEvent, useState } from "react";
 import Google from "./Google"; // Google sign-in component
 import { AppDispatch } from "@/app/redux/store";
-import { signUp } from "@/app/redux/authActions";
+import { signUp, signInWithGoogle } from "@/app/redux/authActions"; // Added signInWithGoogle action
 import { useRouter } from "next/navigation";
 
 const SignOn = () => {
@@ -33,14 +33,26 @@ const SignOn = () => {
     confirmPassword: "",
   });
 
+  const [errorMessage, setErrorMessage] = useState(""); // For Google Sign-In errors
+
+  // Handle Google Sign-In
   const handleGoogleSignIn = async () => {
     try {
-      // Implement Google sign-in logic if needed
+      setErrorMessage(""); // Clear previous error
+      const resultAction = await dispatch(signInWithGoogle());
+
+      if (signInWithGoogle.fulfilled.match(resultAction)) {
+        router.push("/dashboard"); // Redirect to dashboard if successful
+      } else {
+        throw new Error(resultAction.payload as string);
+      }
     } catch (error) {
+      setErrorMessage("Google sign-in failed. Please try again.");
       console.error("Google sign-in failed:", error);
     }
   };
 
+  // Handle Input Changes
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData({
       ...formData,
@@ -48,6 +60,7 @@ const SignOn = () => {
     });
   };
 
+  // Handle Form Submission for Email/Password Sign-Up
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let hasErrors = false;
@@ -98,7 +111,7 @@ const SignOn = () => {
       );
       if (signUp.fulfilled.match(resultAction)) {
         // Use router to navigate to the inpages directly after successful sign-up
-        router.push("/inpages");
+        router.push("/dashboard");
       } else {
         throw new Error(resultAction.payload as string);
       }
@@ -170,6 +183,9 @@ const SignOn = () => {
                   </p>
                 )}
               </div>
+              {errorMessage && (
+                <p className="text-red-500 text-sm">{errorMessage}</p>
+              )}
             </CardContent>
             <CardFooter className="flex flex-col">
               <button type="submit" className="btn w-full text-center">

@@ -1,42 +1,4 @@
-// export default MessagesContent;
-// import React from "react";
-// import { useSelector, useDispatch } from "react-redux";
-// import { RootState, AppDispatch } from "@/app/redux/store";
-// import { clearFeedback } from "@/app/redux/courseSlice";
 
-// const MessagesContent: React.FC = () => {
-//   const dispatch: AppDispatch = useDispatch();
-//   const feedback = useSelector((state: RootState) => state.course.feedback); // Access feedback from Redux
-
-//   const handleClearFeedback = () => {
-//     dispatch(clearFeedback()); // Clear feedback when "Clear Feedback" button is clicked
-//   };
-
-//   return (
-//     <div className="p-4">
-//       <h1 className="text-2xl font-bold mb-4">Messages Content</h1>
-
-//       {/* Check if there is feedback available */}
-//       {feedback ? (
-//         <div className="bg-white p-4 rounded-lg shadow-lg max-w-lg w-full">
-//           <h2 className="text-xl font-bold mb-2">AI Feedback</h2>
-//           <pre className="whitespace-pre-wrap text-gray-800">{feedback}</pre>
-
-//           <button
-//             onClick={handleClearFeedback}
-//             className="mt-4 bg-blue-500 text-white py-2 px-4 rounded-md"
-//           >
-//             Clear Feedback
-//           </button>
-//         </div>
-//       ) : (
-//         <p className="text-gray-600">No feedback available.</p>
-//       )}
-//     </div>
-//   );
-// };
-
-// export default MessagesContent;
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState, AppDispatch } from "@/app/redux/store";

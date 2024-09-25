@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { dummyCourses } from "@/app/coursesData"; // Assuming course data is here
+import { dummyCourses } from "@/app/coursesData"; // Ensure this file has correct course data
 
 // Set up the Google Generative AI API key
-const apiKey =
-  process.env.GEMINI_API_KEY || "AIzaSyBF-4k982pqYn7aDjdlfmkn1E9MsJAVXPA";
+const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBF-4k982pqYn7aDjdlfmkn1E9MsJAVXPA";
 
 if (!apiKey) {
   console.error("GEMINI_API_KEY is not defined");
@@ -27,18 +26,23 @@ export async function POST(req: Request) {
   try {
     console.log("POST request received at /api/evaluate");
 
-    // Parse the request body to get the question, answer, and courseId
-    const body = await req.json();
-    const {
-      question,
-      answer,
-      courseId,
-      chatHistory = [],
-      feedbackRequest = false,
-    } = body;
+    // Try to parse the request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Invalid JSON format in request body:", error.message);
+      } else {
+        console.error("Invalid JSON format in request body:", error);
+      }
+      return NextResponse.json(
+        { error: "Invalid JSON format" },
+        { status: 400 }
+      );
+    }
 
-    // Log the incoming data for debugging
-    console.log("Received data from client:", { question, answer, courseId });
+    const { question, answer, courseId, chatHistory = [], feedbackRequest = false } = body;
 
     // Validate the incoming data
     if (!question || !courseId) {
@@ -51,9 +55,6 @@ export async function POST(req: Request) {
 
     // Handle course completion feedback request
     if (feedbackRequest) {
-      const finalFeedback = `Thank you for completing the course! Here is your feedback for course "${courseId}".`;
-
-      // Send a custom prompt to AI for detailed feedback
       const feedbackPrompt = `Provide a performance summary for a user who completed the course "${courseId}". Include improvement areas, strengths, and an overall evaluation of their progress.`;
 
       const chatSession = model.startChat({ generationConfig, history: [] });
@@ -65,17 +66,14 @@ export async function POST(req: Request) {
 
       const responseText = await result.response.text();
 
-      // Log AI response text
-      console.log("AI final feedback response:", responseText);
-
       return NextResponse.json({
         isCorrect: true,
         correctAnswer: "",
-        explanation: responseText.trim() || finalFeedback,
+        explanation: responseText.trim() || `Thank you for completing the course!`,
       });
     }
 
-    // For regular question-answer evaluation
+    // Regular question-answer evaluation logic
     const course = dummyCourses.find((course) => course.id === courseId);
     if (!course) {
       console.error(`Course with id "${courseId}" not found.`);
@@ -103,18 +101,15 @@ export async function POST(req: Request) {
     });
 
     if (!found) {
-      console.error(
-        `Question "${question}" not found in course "${courseId}".`
-      );
+      console.error(`Question "${question}" not found in course "${courseId}".`);
       return NextResponse.json(
         { error: `Question "${question}" not found in course "${courseId}".` },
         { status: 404 }
       );
     }
 
-    // If the answer is correct, return the success message
+    // If the answer is correct
     if (answer.trim().toLowerCase() === correctAnswer.trim().toLowerCase()) {
-      console.log("Answer is correct.");
       return NextResponse.json({
         isCorrect: true,
         correctAnswer,
@@ -124,8 +119,6 @@ export async function POST(req: Request) {
 
     // Otherwise, send a detailed prompt to the AI explaining the incorrect answer
     const prompt = `Evaluate the following answer to the question: "${question}". The user's provided answer is: "${answer}", but the correct answer is: "${correctAnswer}". Explain why the answer is wrong and provide insights based on the lesson content: "${explanation}".`;
-
-    console.log("Sending prompt to AI:", prompt);
 
     const chatSession = model.startChat({
       generationConfig,
@@ -139,16 +132,13 @@ export async function POST(req: Request) {
 
     const responseText = await result.response.text();
 
-    // Log AI response text
-    console.log("AI response text:", responseText);
-
     return NextResponse.json({
       isCorrect: false,
       correctAnswer,
       explanation: responseText.trim() || explanation.trim(),
     });
   } catch (error) {
-    // Type-check the error
+    // Type-check the error before accessing its properties
     if (error instanceof Error) {
       console.error("Error evaluating answer:", error.message);
       return NextResponse.json(

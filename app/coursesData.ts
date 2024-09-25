@@ -1,5 +1,3 @@
-// data/dummyData.ts
-
 import { Course } from "@/app/types";
 
 export const dummyCourses: Course[] = [
