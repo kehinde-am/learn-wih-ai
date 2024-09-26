@@ -46,7 +46,7 @@ const MessagesContent: React.FC = () => {
 
     try {
       const response = await axios.post("/api/evaluate", {
-        userId, // Pass the userId here
+        userId, 
         question: userMessage,
         feedbackRequest: true,
         chatHistory: newChatHistory,

@@ -343,13 +343,6 @@ const CourseDetails: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Display the chat only when feedback is generated */}
-      {showChat && (
-        <div className="mt-8">
-          <MessagesContent />
-        </div>
-      )}
     </div>
   );
 };
