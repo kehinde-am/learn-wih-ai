@@ -5,24 +5,27 @@ export const evaluateAnswer = async (
   question: string,
   answer: string,
   courseId: string,
-  p0: string
+  userId: string 
 ) => {
   try {
     // Ensure required parameters are passed
-    if (!question || !courseId) {
-      throw new Error("Question or Course ID is missing.");
+    if (!question || !courseId || !userId) {
+      throw new Error("Question, Course ID, or User ID is missing.");
     }
 
     // Log the request data for debugging
-    console.log("API Request - Question:", question, "Course ID:", courseId);
+    console.log("API Request - Question:", question, "Course ID:", courseId, "User ID:", userId);
 
+    // Send the request to the API with all necessary parameters
     const response = await axios.post("/api/evaluate", {
+      userId,  
       question,
       answer,
       courseId,
     });
 
-    return response.data; // Return the AI response data
+    // Return the AI response data
+    return response.data;
   } catch (error) {
     console.error("Error in evaluateAnswer function:", error);
     throw error; // Propagate the error so it can be handled in the UI

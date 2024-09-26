@@ -4,13 +4,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCxteK1U1XMYjTlQYGXLj38VHPZKe5k2u",
+  apiKey: "AIzaSyCxteK1U1XMYjTlQYGXLj38VHPZKe5k2uY",
   authDomain: "learnwithai-e356b.firebaseapp.com",
   projectId: "learnwithai-e356b",
   storageBucket: "learnwithai-e356b.appspot.com",
   messagingSenderId: "1087047577734",
   appId: "1:1087047577734:web:f97891852feb176c3c6107",
-  measurementId: "G-EVRKW5VQKB",
+  measurementId: "G-EVRKW5VQKB"
 };
 
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();

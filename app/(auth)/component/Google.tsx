@@ -1,16 +1,20 @@
-"use Client";
+"use client"
+import React from 'react';
 
 interface GoogleProps {
   onClick: () => void;
 }
 
-const Google: React.FC<GoogleProps> = ({ onClick }) => (
-  <button
-    onClick={onClick}
-    className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition duration-300"
-  >
-    Sign in with Google
-  </button>
-);
+const Google: React.FC<GoogleProps> = ({ onClick }) => {
+  return (
+    <button 
+      className="btn w-full text-center bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded"
+      onClick={onClick}
+      type="button"
+    >
+      Sign in with Google
+    </button>
+  );
+};
 
 export default Google;
