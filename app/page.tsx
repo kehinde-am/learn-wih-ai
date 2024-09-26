@@ -7,7 +7,7 @@ export default function Home() {
       <div className="col-span-5 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 px-3 sm:px-0">
           <div className="m-3 rounded-full border-4 border-black p-5">
-            <IoSchoolOutline className="h-16 w-16" />
+            <IoSchoolOutline className="h-16 w-16" data-testid="school-icon" />
           </div>
           <h1 className="py-3 text-3xl font-light sm:text-4xl">
             Welcome to Learn AI!
